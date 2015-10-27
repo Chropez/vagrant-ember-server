@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# OLD
+# apt-get update
+
+# curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.29.0/install.sh | bash
+# source ~/.bashrc
+# nvm install stable
+# nvm use stable
+# nvm alias default stable
+
+# apt-get install git
+
+# npm install -g bower
+# npm install -g ember-cli
+# npm install -g phantom
+
+
+## New from https://github.com/jvtrigueros/ember-vagrant/blob/master/provision.sh
+echo "Running update"
+apt-get update
+# Adding ppa repositories
+add-apt-repository ppa:git-core/ppa
+
+# Installing Ubuntu build dependencies
+curl -sL https://deb.nodesource.com/setup | bash -
+apt-get install -y nodejs git build-essential automake
+
+# Installing Samba
+apt-get install -y samba samba-common python-glade2 python-dev system-config-samba
+
+# Install ember-cli and bower
+npm install -g ember-cli bower
+
+# Install watchman
+git clone https://github.com/facebook/watchman.git /opt/watchman
+cd /opt/watchman
+./autogen.sh
+./configure
+make
+make install
+
+echo "Setting up samba"
+# Setting up Samba
+share=/samba/ember-workspace
+mkdir -p $share
+chmod -R 0755 $share
+chown -R vagrant:vagrant $share
+
+mv /etc/samba/smb.conf /etc/samba/smb.conf.bak
+mv /home/vagrant/smb.conf /etc/samba/smb.conf
+
+smb_password=vagrant
+(echo $smb_password; echo $smb_password) | smbpasswd -a vagrant
+
+service smbd restart
+
+# Setting up local workspace
+ln -s /samba/ember-workspace /home/vagrant/ember-workspace
+chown -h vagrant:vagrant /home/vagrant/ember-workspace
